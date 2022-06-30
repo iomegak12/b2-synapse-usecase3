@@ -1,0 +1,255 @@
+{
+	"name": "load-data",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool001",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "86c876fb-89ef-436a-b565-e1b871c869a9"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+				"name": "SparkPool001",
+				"type": "Spark",
+				"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"%run \"/initialize-volume-mounting\""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run \"/initialize-schema\""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from notebookutils import mssparkutils\r\n",
+					"\r\n",
+					"jobId = mssparkutils.env.getJobId()\r\n",
+					"\r\n",
+					"customersPath = \"synfs:/\" + jobId + \"/dlsvm/master/Customers.csv\"\r\n",
+					"employeesPath = \"synfs:/\" + jobId + \"/dlsvm/master/Employees.csv\"\r\n",
+					"locationsPath = \"synfs:/\" + jobId + \"/dlsvm/master/Locations.csv\"\r\n",
+					"storesPath = \"synfs:/\" + jobId + \"/dlsvm/master/Stores.csv\"\r\n",
+					"timePath = \"synfs:/\" + jobId + \"/dlsvm/master/Time.csv\"\r\n",
+					"salesReasonsPath = \"synfs:/\" + jobId + \"/dlsvm/master/SalesReasons.csv\"\r\n",
+					"productsPath = \"synfs:/\" + jobId + \"/dlsvm/master/Products.csv\"\r\n",
+					"productSubcategoriesPath = \"synfs:/\" + jobId + \"/dlsvm/master/ProductSubcategories.csv\"\r\n",
+					"productCategoriesPath = \"synfs:/\" + jobId + \"/dlsvm/master/ProductCategories.csv\""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"customersDF = spark.read.csv(customersPath, inferSchema=True, header=True)\r\n",
+					"employeesDF = spark.read.csv(employeesPath, inferSchema=True, header=True)\r\n",
+					"locationsDF = spark.read.csv(locationsPath, inferSchema=True, header=True)\r\n",
+					"storesDF = spark.read.csv(storesPath, inferSchema=True, header=True)\r\n",
+					"timeDF = spark.read.csv(timePath, inferSchema=True, header=True)\r\n",
+					"salesReasonsDF = spark.read.csv(salesReasonsPath, inferSchema=True, header=True)\r\n",
+					"productsDF = spark.read.csv(productsPath, inferSchema=True, header=True)\r\n",
+					"productSubcategoriesDF = spark.read.csv(productSubcategoriesPath, inferSchema=True, header=True)\r\n",
+					"productCategoriesDF = spark.read.csv(productCategoriesPath, inferSchema=True, header=True)\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"customersDF.createOrReplaceTempView(\"vCustomers\")\r\n",
+					"employeesDF.createOrReplaceTempView(\"vEmployees\")\r\n",
+					"locationsDF.createOrReplaceTempView(\"vLocations\")\r\n",
+					"storesDF.createOrReplaceTempView(\"vStores\")\r\n",
+					"timeDF.createOrReplaceTempView(\"vTime\")\r\n",
+					"salesReasonsDF.createOrReplaceTempView(\"vSalesReasons\")\r\n",
+					"productsDF.createOrReplaceTempView(\"vProducts\")\r\n",
+					"productSubcategoriesDF.createOrReplaceTempView(\"vProductSubcategories\")\r\n",
+					"productCategoriesDF.createOrReplaceTempView(\"vProductCategories\")"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"INSERT INTO CaseStudy3DB.Customers SELECT * FROM vCustomers;\r\n",
+					"INSERT INTO CaseStudy3DB.Employees SELECT * FROM vEmployees;\r\n",
+					"INSERT INTO CaseStudy3DB.Locations SELECT * FROM vLocations;\r\n",
+					"INSERT INTO CaseStudy3DB.Stores SELECT * FROM vStores;\r\n",
+					"INSERT INTO CaseStudy3DB.Time SELECT * FROM vTime;\r\n",
+					"INSERT INTO CaseStudy3DB.SalesReasons SELECT * FROM vSalesReasons;\r\n",
+					"INSERT INTO CaseStudy3DB.Products SELECT * FROM vProducts;\r\n",
+					"INSERT INTO CaseStudy3DB.ProductSubcategories SELECT * FROM vProductSubcategories;\r\n",
+					"INSERT INTO CaseStudy3DB.ProductCategories SELECT * FROM vProductCategories;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.Customers;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.Employees;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.Locations;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.Stores;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.SalesReasons;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.time;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.Products;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.ProductSubcategories;\r\n",
+					"SELECT COUNT(*) FROM CaseStudy3DB.ProductCategories;\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run \"deinitialize-volume-mounting\""
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}

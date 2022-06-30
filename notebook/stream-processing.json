@@ -1,0 +1,217 @@
+{
+	"name": "stream-processing",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool001",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "f121b9f4-b74a-46fc-9b1a-cc04a0f9db8f"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+				"name": "SparkPool001",
+				"type": "Spark",
+				"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run \"/load-data\""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"source": [
+					"from notebookutils import mssparkutils\r\n",
+					"\r\n",
+					"keyVaultName = \"ramkeyvaultv20\"\r\n",
+					"secretName = \"eventhubconnectionstring\"\r\n",
+					"\r\n",
+					"eventHubConnectionString = mssparkutils.credentials.getSecret(keyVaultName, secretName)\r\n",
+					"eventHubConfiguration = {\r\n",
+					"    \"eventhubs.connectionString\": sc._jvm.org.apache.spark.eventhubs.EventHubsUtils.encrypt(eventHubConnectionString)\r\n",
+					"}"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"df = spark \\\r\n",
+					"    .readStream \\\r\n",
+					"    .format(\"eventhubs\") \\\r\n",
+					"    .options(**eventHubConfiguration) \\\r\n",
+					"    .load()\r\n",
+					"\r\n",
+					"df = df.withColumn(\"body\", df[\"body\"].cast(\"string\"))"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"from pyspark.sql.functions import *\r\n",
+					"\r\n",
+					"processedOrderDF = df \\\r\n",
+					"    .select( \\\r\n",
+					"        get_json_object(\"body\", \"$.SaleId\").cast(\"int\").alias(\"SaleId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.SaleDate\").cast(\"int\").alias(\"SaleDate\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.CustomerId\").cast(\"int\").alias(\"CustomerId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.EmployeeId\").cast(\"int\").alias(\"EmployeeId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.StoreId\").cast(\"int\").alias(\"StoreId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.ProductId\").cast(\"int\").alias(\"ProductId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.NoOfUnits\").cast(\"int\").alias(\"NoOfUnits\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.SaleAmount\").cast(\"int\").alias(\"SaleAmount\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.SalesReasonId\").cast(\"int\").alias(\"SalesReasonId\"), \\\r\n",
+					"        get_json_object(\"body\", \"$.ProductCost\").cast(\"int\").alias(\"ProductCost\")\r\n",
+					"    )\r\n",
+					"\r\n",
+					"orderDeltaPath = \"/casestudy3/parsed_orders\"\r\n",
+					"\r\n",
+					"outputStream = processedOrderDF \\\r\n",
+					"    .writeStream \\\r\n",
+					"    .format(\"delta\") \\\r\n",
+					"    .outputMode(\"append\") \\\r\n",
+					"    .option(\"checkpointLocation\", \"/tmp/checkpoints/\") \\\r\n",
+					"    .option(\"mergeSchema\", \"true\") \\\r\n",
+					"    .trigger(processingTime = \"5 seconds\") \\\r\n",
+					"    .start(orderDeltaPath)"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"outputStream.processAllAvailable()"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"outputStream.status"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"outputStream.stop()"
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}

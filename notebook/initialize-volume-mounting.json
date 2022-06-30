@@ -1,0 +1,71 @@
+{
+	"name": "initialize-volume-mounting",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool001",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 1,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "1",
+				"spark.dynamicAllocation.maxExecutors": "1",
+				"spark.autotune.trackingId": "3be6fffa-bd06-4658-ba38-1031cfe769c0"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "python"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+				"name": "SparkPool001",
+				"type": "Spark",
+				"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"from notebookutils import mssparkutils\r\n",
+					"\r\n",
+					"volumeName = \"/dlsvm\"\r\n",
+					"dlsPath = \"abfss://usecase3@ramdlsv10.dfs.core.windows.net/\"\r\n",
+					"\r\n",
+					"mssparkutils.fs.mount(dlsPath, volumeName, {\r\n",
+					"    \"linkedService\": \"UseCase3DLS\"\r\n",
+					"})"
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}

@@ -1,0 +1,186 @@
+{
+	"name": "delta-processing",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool001",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "56g",
+			"driverCores": 8,
+			"executorMemory": "56g",
+			"executorCores": 8,
+			"numExecutors": 1,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "1",
+				"spark.dynamicAllocation.maxExecutors": "1",
+				"spark.autotune.trackingId": "494a3500-7c06-4c64-9d4e-014579e8b872"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_pyspark",
+				"display_name": "Synapse PySpark"
+			},
+			"language_info": {
+				"name": "scala"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+				"name": "SparkPool001",
+				"type": "Spark",
+				"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"source": [
+					"import org.apache.spark.sql.functions._\r\n",
+					"import com.microsoft.crm.udfs.CRMSystemUtils._\r\n",
+					"import com.microsoft.orders.udfs.OrderSystemUtils._"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"spark.udf.register(\"getCustomerType\", getCustomerType _)\r\n",
+					"spark.udf.register(\"getCustomerRegion\", getCustomerRegion _)\r\n",
+					"spark.udf.register(\"getOrderAmount\", getOrderAmount _)"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run \"/stream-processing\""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"val processedOrdersSqlStatement = \"\"\"\r\n",
+					"    SELECT \r\n",
+					"      FS.SaleID AS OrderID, \r\n",
+					"      TO_DATE(T.PK_Date, 'yyyy-mm-dd') AS OrderDate,\r\n",
+					"      YEAR(TO_DATE(T.PK_Date, 'yyyy-mm-dd')) AS OrderYear, FS.NoOfUnits AS TotalUnits, FS.SaleAmount AS OrderAmount,\r\n",
+					"      getOrderAmount(FS.NoOfUnits, FS.SaleAmount / FS.NoOfUnits, 10) AS DiscountedOrderAmount,\r\n",
+					"      CONCAT(C.FName, ' ', C.MName, ' ', C.LName) AS CustomerFullName, L.City AS CustomerCity, L.State AS CustomerState, L.Country AS CustomerCountry,\r\n",
+					"      getCustomerRegion(L.City) AS CustomerRegion, getCustomerType(C.CreditLimit) AS CustomerType, IF(C.ActiveStatus, \"Active\", \"Inactive\") AS CustomerStatus,\r\n",
+					"      S.StoreName,\r\n",
+					"      P.Name AS Product, P.Color AS ProductColor, P.Size AS ProductSize,\r\n",
+					"      PS.ProductSubcategoryName AS ProductSubcategory,\r\n",
+					"      PC.ProductCategoryName AS ProductCategory,\r\n",
+					"      SR.SalesReasonName AS Reason, SR.SalesReasonType AS ReasonType,\r\n",
+					"      CONCAT(E.FName, ' ', E.MName, ' ', E.LName) AS EmployeeFullName\r\n",
+					"    FROM CaseStudy3DB.OrderHistory AS FS\r\n",
+					"      JOIN CaseStudy3DB.Time T ON T.DateId = FS.SaleDate\r\n",
+					"      JOIN CaseStudy3DB.Customers C ON C.CustomerID = FS.CustomerID\r\n",
+					"      JOIN CaseStudy3DB.Employees E ON E.EmployeeID = FS.EmployeeID\r\n",
+					"      JOIN CaseStudy3DB.Stores S ON S.StoreID = FS.StoreID\r\n",
+					"      JOIN CaseStudy3DB.SalesReasons SR ON SR.SalesReasonID = FS.SalesReasonID\r\n",
+					"      JOIN CaseStudy3DB.Products P ON P.ProductID = FS.ProductID\r\n",
+					"      JOIN CaseStudy3DB.ProductSubcategories PS ON PS.ProductSubcategoryID = P.ProductSubcategoryID\r\n",
+					"      JOIN CaseStudy3DB.ProductCategories PC ON PC.ProductCategoryID = PS.ProductCategoryID\r\n",
+					"      JOIN CaseStudy3DB.Locations L ON L.LocationID = C.LocationID\r\n",
+					"\"\"\"\r\n",
+					"\r\n",
+					"val processedOrdersDF = spark.sql(processedOrdersSqlStatement)\r\n",
+					"val processedOrdersDeltaPath = \"/casestudy3/processed-orders\"\r\n",
+					"\r\n",
+					"processedOrdersDF\r\n",
+					"  .write\r\n",
+					"  .format(\"delta\")\r\n",
+					"  .mode(\"append\")\r\n",
+					"  .option(\"mergeSchema\", \"true\")\r\n",
+					"  .save(processedOrdersDeltaPath)"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"microsoft": {
+						"language": "sparksql"
+					},
+					"collapsed": false
+				},
+				"source": [
+					"%%sql\r\n",
+					"\r\n",
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProcessedOrders\r\n",
+					"USING DELTA\r\n",
+					"LOCATION \"/casestudy3/processed-orders\""
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}

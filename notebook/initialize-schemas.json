@@ -1,0 +1,474 @@
+{
+	"name": "initialize-schemas",
+	"properties": {
+		"nbformat": 4,
+		"nbformat_minor": 2,
+		"bigDataPool": {
+			"referenceName": "SparkPool001",
+			"type": "BigDataPoolReference"
+		},
+		"sessionProperties": {
+			"driverMemory": "28g",
+			"driverCores": 4,
+			"executorMemory": "28g",
+			"executorCores": 4,
+			"numExecutors": 2,
+			"conf": {
+				"spark.dynamicAllocation.enabled": "false",
+				"spark.dynamicAllocation.minExecutors": "2",
+				"spark.dynamicAllocation.maxExecutors": "2",
+				"spark.autotune.trackingId": "2d47d867-43cf-45b4-b35a-fb106441adbf"
+			}
+		},
+		"metadata": {
+			"saveOutput": true,
+			"synapse_widget": {
+				"version": "0.1"
+			},
+			"enableDebugMode": false,
+			"kernelspec": {
+				"name": "synapse_sparksql",
+				"display_name": "sql"
+			},
+			"language_info": {
+				"name": "sql"
+			},
+			"a365ComputeOptions": {
+				"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+				"name": "SparkPool001",
+				"type": "Spark",
+				"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+				"auth": {
+					"type": "AAD",
+					"authResource": "https://dev.azuresynapse.net"
+				},
+				"sparkVersion": "3.1",
+				"nodeCount": 10,
+				"cores": 8,
+				"memory": 56,
+				"extraHeader": null
+			},
+			"sessionKeepAliveTimeout": 30
+		},
+		"cells": [
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"DROP TABLE IF EXISTS CaseStudy3DB.Customers;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.Employees;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.Locations;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.Products;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.ProductSubcategories;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.ProductCategories;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.Stores;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.SalesReasons;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.Time;\r\n",
+					"DROP TABLE IF EXISTS CaseStudy3DB.OrderHistory;\r\n",
+					"DROP DATABASE IF EXISTS CaseStudy3DB;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"collapsed": false
+				},
+				"source": [
+					"CREATE DATABASE IF NOT EXISTS CaseStudy3DB;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"USE CaseStudy3DB;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Customers (\r\n",
+					"  CustomerID INT,\r\n",
+					"  FName STRING,\r\n",
+					"  MName STRING,\r\n",
+					"  LName STRING,\r\n",
+					"  LocationID INT,\r\n",
+					"  CreditLimit INT,\r\n",
+					"  ActiveStatus BOOLEAN\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/customers\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Customers;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Locations (\r\n",
+					"  LocationID INT,\r\n",
+					"  AddressLine1 STRING,\r\n",
+					"  AddressLine2 STRING,\r\n",
+					"  City STRING,\r\n",
+					"  State STRING,\r\n",
+					"  Country STRING,\r\n",
+					"  Zip STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/locations\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Locations;\r\n",
+					""
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProductCategories (\r\n",
+					"  ProductCategoryID INT,\r\n",
+					"  ProductCategoryName STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/productcategories\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.ProductCategories;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProductSubcategories (\r\n",
+					"  ProductSubcategoryID INT,\r\n",
+					"  ProductCategoryID INT,\r\n",
+					"  ProductSubcategoryName STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/productsubcategories\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.ProductSubcategories;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Products (\r\n",
+					"  ProductID INT,\r\n",
+					"  Name STRING,\r\n",
+					"  ProductNumber STRING,\r\n",
+					"  ProductSubcategoryID INT,\r\n",
+					"  Color STRING,\r\n",
+					"  Size STRING,\r\n",
+					"  StockLevel INT,\r\n",
+					"  Supplier STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/products\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Products;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.SalesReasons (\r\n",
+					"  SalesReasonID INT,\r\n",
+					"  SalesReasonName STRING,\r\n",
+					"  SalesReasonType STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/salesreasons\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.SalesReasons;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Stores (\r\n",
+					"  StoreID INT,\r\n",
+					"  StoreName STRING,\r\n",
+					"  StoreManagerID INT,\r\n",
+					"  LocationID INT\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/stores\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Stores;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Time (\r\n",
+					"  DateId INT,\r\n",
+					"  PK_Date STRING,\r\n",
+					"  Date_Name STRING,\r\n",
+					"  Year STRING,\r\n",
+					"  Year_Name STRING,\r\n",
+					"  Half_Year STRING,\r\n",
+					"  Half_Year_Name STRING,\r\n",
+					"  Quarter STRING,\r\n",
+					"  Quarter_Name STRING,\r\n",
+					"  Month STRING,\r\n",
+					"  Month_Name STRING,\r\n",
+					"  Day_Of_Year STRING,\r\n",
+					"  Day_Of_Year_Name STRING,\r\n",
+					"  Day_Of_Half_Year STRING,\r\n",
+					"  Day_Of_Half_Year_Name STRING,\r\n",
+					"  Day_Of_Quarter STRING,\r\n",
+					"  Day_Of_Quarter_Name STRING,\r\n",
+					"  Day_Of_Month STRING,\r\n",
+					"  Day_Of_Month_Name STRING,\r\n",
+					"  Month_Of_Year STRING,\r\n",
+					"  Month_Of_Year_Name STRING,\r\n",
+					"  Month_Of_Half_Year STRING,\r\n",
+					"  Month_Of_Half_Year_Name STRING,\r\n",
+					"  Month_Of_Quarter STRING,\r\n",
+					"  Month_Of_Quarter_Name STRING,\r\n",
+					"  Quarter_Of_Year STRING,\r\n",
+					"  Quarter_Of_Year_Name STRING,\r\n",
+					"  Quarter_Of_Half_Year STRING,\r\n",
+					"  Quarter_Of_Half_Year_Name STRING,\r\n",
+					"  Half_Year_Of_Year STRING,\r\n",
+					"  Half_Year_Of_Year_Name STRING\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/time\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Time;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Employees (\r\n",
+					"  EmployeeID INT,\r\n",
+					"  FName STRING,\r\n",
+					"  MName STRING,\r\n",
+					"  LName STRING,\r\n",
+					"  ManagerID INT\r\n",
+					")\r\n",
+					"USING PARQUET\r\n",
+					"OPTIONS\r\n",
+					"(\r\n",
+					"  \"path\" \"/casestudy3/employees\"\r\n",
+					");\r\n",
+					" \r\n",
+					"CACHE LAZY TABLE CaseStudy3DB.Employees;"
+				],
+				"attachments": null,
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					},
+					"collapsed": false
+				},
+				"source": [
+					"CREATE TABLE IF NOT EXISTS CaseStudy3DB.OrderHistory\r\n",
+					"(\r\n",
+					"  SaleID INT,\r\n",
+					"  SaleDate INT,\r\n",
+					"  CustomerID INT,\r\n",
+					"  EmployeeID INT,\r\n",
+					"  StoreID INT,\r\n",
+					"  ProductID INT,\r\n",
+					"  Units INT,\r\n",
+					"  SaleAmount INT,\r\n",
+					"  SalesReasonID INT,\r\n",
+					"  ProductCost INT\r\n",
+					")\r\n",
+					"USING DELTA\r\n",
+					"LOCATION \"/casestudy3/parsed_orders\""
+				],
+				"attachments": null,
+				"execution_count": null
+			}
+		]
+	}
+}
