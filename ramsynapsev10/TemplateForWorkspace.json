@@ -1,0 +1,2106 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "ramsynapsev10"
+		},
+		"ramsynapsev10-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ramsynapsev10-WorkspaceDefaultSqlServer'"
+		},
+		"UseCase3DLS_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ramdlsv10.dfs.core.windows.net/"
+		},
+		"ramsynapsev10-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://ramdlsv10.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/Process Analytic Queries')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "delta-processing",
+						"type": "SynapseNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebook": {
+								"referenceName": "delta-processing",
+								"type": "NotebookReference"
+							},
+							"snapshot": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-06-30T13:24:45Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/notebooks/delta-processing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/UseCase3DLS')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('UseCase3DLS_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ramsynapsev10-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('ramsynapsev10-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ramsynapsev10-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ramsynapsev10-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Delta Table Exploration')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "881a697b-7c4a-4785-ac80-dfbdfa068eb9"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"import random\r\n",
+							"\r\n",
+							"session_id = random.randint(1,1000000)\r\n",
+							"delta_table_path = \"/delta/delta-table-{0}\".format(session_id)\r\n",
+							"\r\n",
+							"print(delta_table_path)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"data = spark.range(0, 5)\r\n",
+							"data.show()\r\n",
+							"\r\n",
+							"data \\\r\n",
+							"    .write \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .save(delta_table_path)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"[log_line.value for log_line in spark.read.text(delta_table_path + \"/_delta_log/\").collect()]"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df = spark \\\r\n",
+							"    .read \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .load(delta_table_path)\r\n",
+							"\r\n",
+							"df.show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"data = spark.range(5, 10)\r\n",
+							"\r\n",
+							"data \\\r\n",
+							"    .write \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .mode(\"overwrite\") \\\r\n",
+							"    .save(delta_table_path)\r\n",
+							"\r\n",
+							"data.show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"[log_line.value for log_line in spark.read.text(delta_table_path + \"/_delta_log/\").collect()]"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"data \\\r\n",
+							"    .write \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .saveAsTable(\"ManagedDeltaTable\")"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"SELECT * FROM manageddeltatable"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"CREATE TABLE ExternalDeltaTable\r\n",
+							"USING DELTA\r\n",
+							"LOCATION \"/delta/delta-table-505089\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"SELECT * FROM ExternalDeltaTable"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"DESCRIBE EXTENDED ExternalDeltaTable"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.sql(\"DESCRIBE EXTENDED ExternalDeltaTable\").show(truncate=False)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from delta.tables import *\r\n",
+							"from pyspark.sql.functions import *\r\n",
+							"\r\n",
+							"delta_table = DeltaTable.forPath(spark, delta_table_path)\r\n",
+							"\r\n",
+							"delta_table.update(\r\n",
+							"    condition = expr(\"id % 2 == 0\"),\r\n",
+							"    set = { \"id\": expr(\"id + 100\")}\r\n",
+							")\r\n",
+							"\r\n",
+							"delta_table.toDF().show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"delta_table.delete(\"id % 2 == 0\")\r\n",
+							"\r\n",
+							"delta_table.toDF().show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"new_data = spark.range(0, 20)\r\n",
+							"\r\n",
+							"delta_table \\\r\n",
+							"    .alias(\"oldData\") \\\r\n",
+							"    .merge(new_data.alias(\"newData\"), \"oldData.id = newData.id\") \\\r\n",
+							"    .whenMatchedUpdate(set = { \"id\": lit(-1)}) \\\r\n",
+							"    .whenNotMatchedInsert(values = { \"id\": col(\"newData.id\")}) \\\r\n",
+							"    .execute()\r\n",
+							"\r\n",
+							"delta_table.toDF().show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"delta_table \\\r\n",
+							"    .history() \\\r\n",
+							"    .show(20, 1000, False)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"DESCRIBE HISTORY ExternalDeltaTable"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df = spark \\\r\n",
+							"    .read \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .option(\"versionAsOf\", 0) \\\r\n",
+							"    .load(delta_table_path)\r\n",
+							"\r\n",
+							"df.show()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Run Notebooks Test')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "e56a7e10-3508-4319-b5a7-bafbad800ffe"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"%run \"/initialize-volume-mounting\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"%run \"/deinitialize-volume-mounting\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/deinitialize-volume-mounting')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "7f78e9d9-31a4-4e87-8703-86066cdbe404"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"from notebookutils import mssparkutils\r\n",
+							"\r\n",
+							"volumeName = \"/dlsvm\"\r\n",
+							"\r\n",
+							"mssparkutils.fs.unmount(volumeName)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/delta-processing')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 1,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "1",
+						"spark.dynamicAllocation.maxExecutors": "1",
+						"spark.autotune.trackingId": "494a3500-7c06-4c64-9d4e-014579e8b872"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "scala"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"import org.apache.spark.sql.functions._\r\n",
+							"import com.microsoft.crm.udfs.CRMSystemUtils._\r\n",
+							"import com.microsoft.orders.udfs.OrderSystemUtils._"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"spark.udf.register(\"getCustomerType\", getCustomerType _)\r\n",
+							"spark.udf.register(\"getCustomerRegion\", getCustomerRegion _)\r\n",
+							"spark.udf.register(\"getOrderAmount\", getOrderAmount _)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"%run \"/stream-processing\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"val processedOrdersSqlStatement = \"\"\"\r\n",
+							"    SELECT \r\n",
+							"      FS.SaleID AS OrderID, \r\n",
+							"      TO_DATE(T.PK_Date, 'yyyy-mm-dd') AS OrderDate,\r\n",
+							"      YEAR(TO_DATE(T.PK_Date, 'yyyy-mm-dd')) AS OrderYear, FS.NoOfUnits AS TotalUnits, FS.SaleAmount AS OrderAmount,\r\n",
+							"      getOrderAmount(FS.NoOfUnits, FS.SaleAmount / FS.NoOfUnits, 10) AS DiscountedOrderAmount,\r\n",
+							"      CONCAT(C.FName, ' ', C.MName, ' ', C.LName) AS CustomerFullName, L.City AS CustomerCity, L.State AS CustomerState, L.Country AS CustomerCountry,\r\n",
+							"      getCustomerRegion(L.City) AS CustomerRegion, getCustomerType(C.CreditLimit) AS CustomerType, IF(C.ActiveStatus, \"Active\", \"Inactive\") AS CustomerStatus,\r\n",
+							"      S.StoreName,\r\n",
+							"      P.Name AS Product, P.Color AS ProductColor, P.Size AS ProductSize,\r\n",
+							"      PS.ProductSubcategoryName AS ProductSubcategory,\r\n",
+							"      PC.ProductCategoryName AS ProductCategory,\r\n",
+							"      SR.SalesReasonName AS Reason, SR.SalesReasonType AS ReasonType,\r\n",
+							"      CONCAT(E.FName, ' ', E.MName, ' ', E.LName) AS EmployeeFullName\r\n",
+							"    FROM CaseStudy3DB.OrderHistory AS FS\r\n",
+							"      JOIN CaseStudy3DB.Time T ON T.DateId = FS.SaleDate\r\n",
+							"      JOIN CaseStudy3DB.Customers C ON C.CustomerID = FS.CustomerID\r\n",
+							"      JOIN CaseStudy3DB.Employees E ON E.EmployeeID = FS.EmployeeID\r\n",
+							"      JOIN CaseStudy3DB.Stores S ON S.StoreID = FS.StoreID\r\n",
+							"      JOIN CaseStudy3DB.SalesReasons SR ON SR.SalesReasonID = FS.SalesReasonID\r\n",
+							"      JOIN CaseStudy3DB.Products P ON P.ProductID = FS.ProductID\r\n",
+							"      JOIN CaseStudy3DB.ProductSubcategories PS ON PS.ProductSubcategoryID = P.ProductSubcategoryID\r\n",
+							"      JOIN CaseStudy3DB.ProductCategories PC ON PC.ProductCategoryID = PS.ProductCategoryID\r\n",
+							"      JOIN CaseStudy3DB.Locations L ON L.LocationID = C.LocationID\r\n",
+							"\"\"\"\r\n",
+							"\r\n",
+							"val processedOrdersDF = spark.sql(processedOrdersSqlStatement)\r\n",
+							"val processedOrdersDeltaPath = \"/casestudy3/processed-orders\"\r\n",
+							"\r\n",
+							"processedOrdersDF\r\n",
+							"  .write\r\n",
+							"  .format(\"delta\")\r\n",
+							"  .mode(\"append\")\r\n",
+							"  .option(\"mergeSchema\", \"true\")\r\n",
+							"  .save(processedOrdersDeltaPath)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProcessedOrders\r\n",
+							"USING DELTA\r\n",
+							"LOCATION \"/casestudy3/processed-orders\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/initialize-schemas')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "2d47d867-43cf-45b4-b35a-fb106441adbf"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_sparksql",
+						"display_name": "sql"
+					},
+					"language_info": {
+						"name": "sql"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"DROP TABLE IF EXISTS CaseStudy3DB.Customers;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.Employees;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.Locations;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.Products;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.ProductSubcategories;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.ProductCategories;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.Stores;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.SalesReasons;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.Time;\r\n",
+							"DROP TABLE IF EXISTS CaseStudy3DB.OrderHistory;\r\n",
+							"DROP DATABASE IF EXISTS CaseStudy3DB;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"collapsed": false
+						},
+						"source": [
+							"CREATE DATABASE IF NOT EXISTS CaseStudy3DB;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"USE CaseStudy3DB;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Customers (\r\n",
+							"  CustomerID INT,\r\n",
+							"  FName STRING,\r\n",
+							"  MName STRING,\r\n",
+							"  LName STRING,\r\n",
+							"  LocationID INT,\r\n",
+							"  CreditLimit INT,\r\n",
+							"  ActiveStatus BOOLEAN\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/customers\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Customers;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Locations (\r\n",
+							"  LocationID INT,\r\n",
+							"  AddressLine1 STRING,\r\n",
+							"  AddressLine2 STRING,\r\n",
+							"  City STRING,\r\n",
+							"  State STRING,\r\n",
+							"  Country STRING,\r\n",
+							"  Zip STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/locations\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Locations;\r\n",
+							""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProductCategories (\r\n",
+							"  ProductCategoryID INT,\r\n",
+							"  ProductCategoryName STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/productcategories\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.ProductCategories;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.ProductSubcategories (\r\n",
+							"  ProductSubcategoryID INT,\r\n",
+							"  ProductCategoryID INT,\r\n",
+							"  ProductSubcategoryName STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/productsubcategories\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.ProductSubcategories;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Products (\r\n",
+							"  ProductID INT,\r\n",
+							"  Name STRING,\r\n",
+							"  ProductNumber STRING,\r\n",
+							"  ProductSubcategoryID INT,\r\n",
+							"  Color STRING,\r\n",
+							"  Size STRING,\r\n",
+							"  StockLevel INT,\r\n",
+							"  Supplier STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/products\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Products;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.SalesReasons (\r\n",
+							"  SalesReasonID INT,\r\n",
+							"  SalesReasonName STRING,\r\n",
+							"  SalesReasonType STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/salesreasons\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.SalesReasons;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Stores (\r\n",
+							"  StoreID INT,\r\n",
+							"  StoreName STRING,\r\n",
+							"  StoreManagerID INT,\r\n",
+							"  LocationID INT\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/stores\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Stores;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Time (\r\n",
+							"  DateId INT,\r\n",
+							"  PK_Date STRING,\r\n",
+							"  Date_Name STRING,\r\n",
+							"  Year STRING,\r\n",
+							"  Year_Name STRING,\r\n",
+							"  Half_Year STRING,\r\n",
+							"  Half_Year_Name STRING,\r\n",
+							"  Quarter STRING,\r\n",
+							"  Quarter_Name STRING,\r\n",
+							"  Month STRING,\r\n",
+							"  Month_Name STRING,\r\n",
+							"  Day_Of_Year STRING,\r\n",
+							"  Day_Of_Year_Name STRING,\r\n",
+							"  Day_Of_Half_Year STRING,\r\n",
+							"  Day_Of_Half_Year_Name STRING,\r\n",
+							"  Day_Of_Quarter STRING,\r\n",
+							"  Day_Of_Quarter_Name STRING,\r\n",
+							"  Day_Of_Month STRING,\r\n",
+							"  Day_Of_Month_Name STRING,\r\n",
+							"  Month_Of_Year STRING,\r\n",
+							"  Month_Of_Year_Name STRING,\r\n",
+							"  Month_Of_Half_Year STRING,\r\n",
+							"  Month_Of_Half_Year_Name STRING,\r\n",
+							"  Month_Of_Quarter STRING,\r\n",
+							"  Month_Of_Quarter_Name STRING,\r\n",
+							"  Quarter_Of_Year STRING,\r\n",
+							"  Quarter_Of_Year_Name STRING,\r\n",
+							"  Quarter_Of_Half_Year STRING,\r\n",
+							"  Quarter_Of_Half_Year_Name STRING,\r\n",
+							"  Half_Year_Of_Year STRING,\r\n",
+							"  Half_Year_Of_Year_Name STRING\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/time\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Time;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.Employees (\r\n",
+							"  EmployeeID INT,\r\n",
+							"  FName STRING,\r\n",
+							"  MName STRING,\r\n",
+							"  LName STRING,\r\n",
+							"  ManagerID INT\r\n",
+							")\r\n",
+							"USING PARQUET\r\n",
+							"OPTIONS\r\n",
+							"(\r\n",
+							"  \"path\" \"/casestudy3/employees\"\r\n",
+							");\r\n",
+							" \r\n",
+							"CACHE LAZY TABLE CaseStudy3DB.Employees;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"collapsed": false
+						},
+						"source": [
+							"CREATE TABLE IF NOT EXISTS CaseStudy3DB.OrderHistory\r\n",
+							"(\r\n",
+							"  SaleID INT,\r\n",
+							"  SaleDate INT,\r\n",
+							"  CustomerID INT,\r\n",
+							"  EmployeeID INT,\r\n",
+							"  StoreID INT,\r\n",
+							"  ProductID INT,\r\n",
+							"  Units INT,\r\n",
+							"  SaleAmount INT,\r\n",
+							"  SalesReasonID INT,\r\n",
+							"  ProductCost INT\r\n",
+							")\r\n",
+							"USING DELTA\r\n",
+							"LOCATION \"/casestudy3/parsed_orders\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/initialize-volume-mounting')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 1,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "1",
+						"spark.dynamicAllocation.maxExecutors": "1",
+						"spark.autotune.trackingId": "3be6fffa-bd06-4658-ba38-1031cfe769c0"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"from notebookutils import mssparkutils\r\n",
+							"\r\n",
+							"volumeName = \"/dlsvm\"\r\n",
+							"dlsPath = \"abfss://usecase3@ramdlsv10.dfs.core.windows.net/\"\r\n",
+							"\r\n",
+							"mssparkutils.fs.mount(dlsPath, volumeName, {\r\n",
+							"    \"linkedService\": \"UseCase3DLS\"\r\n",
+							"})"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/load-data')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "28g",
+					"driverCores": 4,
+					"executorMemory": "28g",
+					"executorCores": 4,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "86c876fb-89ef-436a-b565-e1b871c869a9"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"source": [
+							"%run \"/initialize-volume-mounting\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"%run \"/initialize-schema\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from notebookutils import mssparkutils\r\n",
+							"\r\n",
+							"jobId = mssparkutils.env.getJobId()\r\n",
+							"\r\n",
+							"customersPath = \"synfs:/\" + jobId + \"/dlsvm/master/Customers.csv\"\r\n",
+							"employeesPath = \"synfs:/\" + jobId + \"/dlsvm/master/Employees.csv\"\r\n",
+							"locationsPath = \"synfs:/\" + jobId + \"/dlsvm/master/Locations.csv\"\r\n",
+							"storesPath = \"synfs:/\" + jobId + \"/dlsvm/master/Stores.csv\"\r\n",
+							"timePath = \"synfs:/\" + jobId + \"/dlsvm/master/Time.csv\"\r\n",
+							"salesReasonsPath = \"synfs:/\" + jobId + \"/dlsvm/master/SalesReasons.csv\"\r\n",
+							"productsPath = \"synfs:/\" + jobId + \"/dlsvm/master/Products.csv\"\r\n",
+							"productSubcategoriesPath = \"synfs:/\" + jobId + \"/dlsvm/master/ProductSubcategories.csv\"\r\n",
+							"productCategoriesPath = \"synfs:/\" + jobId + \"/dlsvm/master/ProductCategories.csv\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"customersDF = spark.read.csv(customersPath, inferSchema=True, header=True)\r\n",
+							"employeesDF = spark.read.csv(employeesPath, inferSchema=True, header=True)\r\n",
+							"locationsDF = spark.read.csv(locationsPath, inferSchema=True, header=True)\r\n",
+							"storesDF = spark.read.csv(storesPath, inferSchema=True, header=True)\r\n",
+							"timeDF = spark.read.csv(timePath, inferSchema=True, header=True)\r\n",
+							"salesReasonsDF = spark.read.csv(salesReasonsPath, inferSchema=True, header=True)\r\n",
+							"productsDF = spark.read.csv(productsPath, inferSchema=True, header=True)\r\n",
+							"productSubcategoriesDF = spark.read.csv(productSubcategoriesPath, inferSchema=True, header=True)\r\n",
+							"productCategoriesDF = spark.read.csv(productCategoriesPath, inferSchema=True, header=True)\r\n",
+							""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"customersDF.createOrReplaceTempView(\"vCustomers\")\r\n",
+							"employeesDF.createOrReplaceTempView(\"vEmployees\")\r\n",
+							"locationsDF.createOrReplaceTempView(\"vLocations\")\r\n",
+							"storesDF.createOrReplaceTempView(\"vStores\")\r\n",
+							"timeDF.createOrReplaceTempView(\"vTime\")\r\n",
+							"salesReasonsDF.createOrReplaceTempView(\"vSalesReasons\")\r\n",
+							"productsDF.createOrReplaceTempView(\"vProducts\")\r\n",
+							"productSubcategoriesDF.createOrReplaceTempView(\"vProductSubcategories\")\r\n",
+							"productCategoriesDF.createOrReplaceTempView(\"vProductCategories\")"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"INSERT INTO CaseStudy3DB.Customers SELECT * FROM vCustomers;\r\n",
+							"INSERT INTO CaseStudy3DB.Employees SELECT * FROM vEmployees;\r\n",
+							"INSERT INTO CaseStudy3DB.Locations SELECT * FROM vLocations;\r\n",
+							"INSERT INTO CaseStudy3DB.Stores SELECT * FROM vStores;\r\n",
+							"INSERT INTO CaseStudy3DB.Time SELECT * FROM vTime;\r\n",
+							"INSERT INTO CaseStudy3DB.SalesReasons SELECT * FROM vSalesReasons;\r\n",
+							"INSERT INTO CaseStudy3DB.Products SELECT * FROM vProducts;\r\n",
+							"INSERT INTO CaseStudy3DB.ProductSubcategories SELECT * FROM vProductSubcategories;\r\n",
+							"INSERT INTO CaseStudy3DB.ProductCategories SELECT * FROM vProductCategories;"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							},
+							"microsoft": {
+								"language": "sparksql"
+							},
+							"collapsed": false
+						},
+						"source": [
+							"%%sql\r\n",
+							"\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.Customers;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.Employees;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.Locations;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.Stores;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.SalesReasons;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.time;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.Products;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.ProductSubcategories;\r\n",
+							"SELECT COUNT(*) FROM CaseStudy3DB.ProductCategories;\r\n",
+							""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"%run \"deinitialize-volume-mounting\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/stream-processing')]",
+			"type": "Microsoft.Synapse/workspaces/notebooks",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"nbformat": 4,
+				"nbformat_minor": 2,
+				"bigDataPool": {
+					"referenceName": "SparkPool001",
+					"type": "BigDataPoolReference"
+				},
+				"sessionProperties": {
+					"driverMemory": "56g",
+					"driverCores": 8,
+					"executorMemory": "56g",
+					"executorCores": 8,
+					"numExecutors": 2,
+					"conf": {
+						"spark.dynamicAllocation.enabled": "false",
+						"spark.dynamicAllocation.minExecutors": "2",
+						"spark.dynamicAllocation.maxExecutors": "2",
+						"spark.autotune.trackingId": "f121b9f4-b74a-46fc-9b1a-cc04a0f9db8f"
+					}
+				},
+				"metadata": {
+					"saveOutput": true,
+					"synapse_widget": {
+						"version": "0.1"
+					},
+					"enableDebugMode": false,
+					"kernelspec": {
+						"name": "synapse_pyspark",
+						"display_name": "Synapse PySpark"
+					},
+					"language_info": {
+						"name": "python"
+					},
+					"a365ComputeOptions": {
+						"id": "/subscriptions/1adafdaf-0248-4e39-8612-0131d7726067/resourceGroups/day4resourcegroup/providers/Microsoft.Synapse/workspaces/ramsynapsev10/bigDataPools/SparkPool001",
+						"name": "SparkPool001",
+						"type": "Spark",
+						"endpoint": "https://ramsynapsev10.dev.azuresynapse.net/livyApi/versions/2019-11-01-preview/sparkPools/SparkPool001",
+						"auth": {
+							"type": "AAD",
+							"authResource": "https://dev.azuresynapse.net"
+						},
+						"sparkVersion": "3.1",
+						"nodeCount": 10,
+						"cores": 8,
+						"memory": 56,
+						"extraHeader": null
+					},
+					"sessionKeepAliveTimeout": 30
+				},
+				"cells": [
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"%run \"/load-data\""
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"source": [
+							"from notebookutils import mssparkutils\r\n",
+							"\r\n",
+							"keyVaultName = \"ramkeyvaultv20\"\r\n",
+							"secretName = \"eventhubconnectionstring\"\r\n",
+							"\r\n",
+							"eventHubConnectionString = mssparkutils.credentials.getSecret(keyVaultName, secretName)\r\n",
+							"eventHubConfiguration = {\r\n",
+							"    \"eventhubs.connectionString\": sc._jvm.org.apache.spark.eventhubs.EventHubsUtils.encrypt(eventHubConnectionString)\r\n",
+							"}"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"df = spark \\\r\n",
+							"    .readStream \\\r\n",
+							"    .format(\"eventhubs\") \\\r\n",
+							"    .options(**eventHubConfiguration) \\\r\n",
+							"    .load()\r\n",
+							"\r\n",
+							"df = df.withColumn(\"body\", df[\"body\"].cast(\"string\"))"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"from pyspark.sql.functions import *\r\n",
+							"\r\n",
+							"processedOrderDF = df \\\r\n",
+							"    .select( \\\r\n",
+							"        get_json_object(\"body\", \"$.SaleId\").cast(\"int\").alias(\"SaleId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.SaleDate\").cast(\"int\").alias(\"SaleDate\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.CustomerId\").cast(\"int\").alias(\"CustomerId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.EmployeeId\").cast(\"int\").alias(\"EmployeeId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.StoreId\").cast(\"int\").alias(\"StoreId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.ProductId\").cast(\"int\").alias(\"ProductId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.NoOfUnits\").cast(\"int\").alias(\"NoOfUnits\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.SaleAmount\").cast(\"int\").alias(\"SaleAmount\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.SalesReasonId\").cast(\"int\").alias(\"SalesReasonId\"), \\\r\n",
+							"        get_json_object(\"body\", \"$.ProductCost\").cast(\"int\").alias(\"ProductCost\")\r\n",
+							"    )\r\n",
+							"\r\n",
+							"orderDeltaPath = \"/casestudy3/parsed_orders\"\r\n",
+							"\r\n",
+							"outputStream = processedOrderDF \\\r\n",
+							"    .writeStream \\\r\n",
+							"    .format(\"delta\") \\\r\n",
+							"    .outputMode(\"append\") \\\r\n",
+							"    .option(\"checkpointLocation\", \"/tmp/checkpoints/\") \\\r\n",
+							"    .option(\"mergeSchema\", \"true\") \\\r\n",
+							"    .trigger(processingTime = \"5 seconds\") \\\r\n",
+							"    .start(orderDeltaPath)"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"outputStream.processAllAvailable()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"outputStream.status"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					},
+					{
+						"cell_type": "code",
+						"metadata": {
+							"jupyter": {
+								"source_hidden": false,
+								"outputs_hidden": false
+							},
+							"nteract": {
+								"transient": {
+									"deleting": false
+								}
+							}
+						},
+						"source": [
+							"outputStream.stop()"
+						],
+						"attachments": null,
+						"outputs": [],
+						"execution_count": null
+					}
+				]
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SparkPool001')]",
+			"type": "Microsoft.Synapse/workspaces/bigDataPools",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"autoPause": {
+					"enabled": true,
+					"delayInMinutes": 15
+				},
+				"autoScale": {
+					"enabled": true,
+					"maxNodeCount": 3,
+					"minNodeCount": 3
+				},
+				"nodeCount": 10,
+				"nodeSize": "Medium",
+				"nodeSizeFamily": "MemoryOptimized",
+				"sparkVersion": "3.1",
+				"isComputeIsolationEnabled": false,
+				"sessionLevelPackagesEnabled": false,
+				"customLibraries": [
+					{
+						"name": "crmsystem.jar",
+						"path": "ramsynapsev10/libraries/crmsystem.jar",
+						"containerName": "prep",
+						"uploadedTimestamp": "0001-01-01T00:00:00+00:00",
+						"type": "jar"
+					},
+					{
+						"name": "ordersystem.jar",
+						"path": "ramsynapsev10/libraries/ordersystem.jar",
+						"containerName": "prep",
+						"uploadedTimestamp": "0001-01-01T00:00:00+00:00",
+						"type": "jar"
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [],
+			"location": "eastus"
+		}
+	]
+}
